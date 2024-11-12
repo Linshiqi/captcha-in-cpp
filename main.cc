@@ -17,11 +17,56 @@ std::string generateRandomText(int length) {
   return randomText;
 }
 
-void generateCaptchaImage(const std::string &text,
+void addNoisePointers(const int width, const int height,
+                      CImg<unsigned char> &image) {
+  // Add some noise
+  for (int i = 0; i < 1000; ++i) {
+    int x = rand() % width;
+    int y = rand() % height;
+    unsigned char color[] = {(unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256)};
+    image.draw_point(x, y, color);
+  }
+}
+
+void drawBezier(int x0, int y0, int x1, int y1, int x2, int y2, int x3, int y3,
+                CImg<unsigned char> &image, unsigned char *color) {
+  for (float t = 0; t <= 1; t += 0.01) {
+    float xt = (1 - t) * (1 - t) * (1 - t) * x0 +
+               3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 +
+               t * t * t * x3;
+    float yt = (1 - t) * (1 - t) * (1 - t) * y0 +
+               3 * (1 - t) * (1 - t) * t * y1 + 3 * (1 - t) * t * t * y2 +
+               t * t * t * y3;
+    image.draw_point(xt, yt, color);
+  }
+}
+
+void addRandomCurveLine(const int width, const int height,
+                        CImg<unsigned char> &image) {
+  for (int i = 0; i < 20; ++i) { // Draw 5 random curves
+    int x0 = 0;                 // Start from the left side
+    int y0 = rand() % height;
+    int x1 = rand() % width;
+    int y1 = rand() % height;
+    int x2 = rand() % width;
+    int y2 = rand() % height;
+    int x3 = width; // End at the right side
+    int y3 = rand() % height;
+    unsigned char color[] = {(unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256)};
+    drawBezier(x0, y0, x1, y1, x2, y2, x3, y3, image, color);
+  }
+}
+
+bool generateCaptchaImage(const std::string &text,
                           const std::string &filename) {
   const int width = 200;
   const int height = 70;
-  const float fixed_space = 10; // Adjust this value to control spacing between characters
+  const float fixed_space =
+      10; // Adjust this value to control spacing between characters
   CImg<unsigned char> image(width, height, 1, 3, 0); // Create a black image
   const unsigned char white[] = {255, 255, 255};
 
@@ -34,7 +79,7 @@ void generateCaptchaImage(const std::string &text,
   std::cout << "charHeight = " << charHeight << std::endl;
 
   // Draw text with deformation
-  int x = 10;
+  int x = 2 * fixed_space;
   int y = (height - charHeight) / 2; // Center vertically
   for (char c : text) {
     CImg<unsigned char> charImage(charWidth, charHeight, 1, 3, 0);
@@ -50,23 +95,16 @@ void generateCaptchaImage(const std::string &text,
     if (x + charImage.width() > width) {
       std::cout << "x + charImage.width() = " << x + charImage.width()
                 << std::endl;
-      break; // Stop drawing if the text exceeds the image width
+      return false;
     }
 
     image.draw_image(x, y, charImage);
     x += charImage.width();
   }
 
-  // Add some noise
-  for (int i = 0; i < 1000; ++i) {
-    int x = rand() % width;
-    int y = rand() % height;
-    unsigned char color[] = {(unsigned char)(rand() % 256),
-                             (unsigned char)(rand() % 256),
-                             (unsigned char)(rand() % 256)};
-    image.draw_point(x, y, color);
-  }
-
+  // Add random curved lines
+  addRandomCurveLine(width, height, image);
+  addNoisePointers(width, height, image);
   // Save the image as PPM
   std::string tempFilename = "captcha.ppm";
   image.save(tempFilename.c_str());
@@ -77,14 +115,21 @@ void generateCaptchaImage(const std::string &text,
 
   // Remove the temporary PPM file
   std::remove(tempFilename.c_str());
+
+  return true;
 }
 
 int main() {
   srand(time(0));
   std::string captchaText = generateRandomText(6);
   std::string filename = "captcha.png";
-  generateCaptchaImage(captchaText, filename);
-  std::cout << "CAPTCHA generated: " << captchaText << std::endl;
-  std::cout << "Image saved as: " << filename << std::endl;
+  auto result = generateCaptchaImage(captchaText, filename);
+  if (result) {
+    std::cout << "CAPTCHA generated: " << captchaText << std::endl;
+    std::cout << "Image saved as: " << filename << std::endl;
+  } else {
+    std::cout << "CAPTCHA not generated " << filename << std::endl;
+  }
+
   return 0;
 }
