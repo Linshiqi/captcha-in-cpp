@@ -1,75 +1,90 @@
 #define cimg_display 0
 #include "CImg.h"
-#include <string>
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include <string>
 
 using namespace cimg_library;
 
 std::string generateRandomText(int length) {
-    const std::string characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    std::string randomText;
-    for (int i = 0; i < length; ++i) {
-        randomText += characters[rand() % characters.size()];
-    }
-    return randomText;
+  const std::string characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  std::string randomText;
+  for (int i = 0; i < length; ++i) {
+    randomText += characters[rand() % characters.size()];
+  }
+  return randomText;
 }
 
-void generateCaptchaImage(const std::string &text, const std::string &filename) {
-    const int width = 200;
-    const int height = 70;
-    CImg<unsigned char> image(width, height, 1, 3, 0); // Create a black image
-    const unsigned char white[] = { 255, 255, 255 };
+void generateCaptchaImage(const std::string &text,
+                          const std::string &filename) {
+  const int width = 200;
+  const int height = 70;
+  const float fixed_space = 10; // Adjust this value to control spacing between characters
+  CImg<unsigned char> image(width, height, 1, 3, 0); // Create a black image
+  const unsigned char white[] = {255, 255, 255};
 
-    // Draw text with deformation
-    int x = 10;
-    int y = 20;
-    for (char c : text) {
-        CImg<unsigned char> charImage(32, 32, 1, 3, 0);
-        charImage.draw_text(0, 0, std::string(1, c).c_str(), white, 0, 1, 32);
+  // Calculate character dimensions
+  int totalChars = text.size();
+  int charWidth = (width - totalChars * fixed_space) / totalChars;
+  int charHeight = height / 2; // Assuming single line of text
 
-        // Apply random transformations
-        float angle = (rand() % 30) - 15; // Rotate between -15 and 15 degrees
-        float scale = 0.8 + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (1.2 - 0.8))); // Scale between 0.8 and 1.2
-        charImage.rotate(angle).resize(charImage.width() * scale, charImage.height() * scale);
+  std::cout << "charWidth = " << charWidth << std::endl;
+  std::cout << "charHeight = " << charHeight << std::endl;
 
-        // Ensure the character fits within the image boundaries
-        if (x + charImage.width() > width) {
-            x = 10;
-            y += charImage.height() + 5;
-        }
+  // Draw text with deformation
+  int x = 10;
+  int y = (height - charHeight) / 2; // Center vertically
+  for (char c : text) {
+    CImg<unsigned char> charImage(charWidth, charHeight, 1, 3, 0);
+    charImage.draw_text(0, 0, std::string(1, c).c_str(), white, 0, 1,
+                        charHeight);
 
-        image.draw_image(x, y, charImage);
-        x += charImage.width() + 5;
+    // Apply random transformations
+    float angle = (rand() % 30) - 15; // Rotate between -15 and 15 degrees
+
+    charImage.rotate(angle).resize(charImage.width(), charImage.height());
+
+    // Ensure the character fits within the image boundaries
+    if (x + charImage.width() > width) {
+      std::cout << "x + charImage.width() = " << x + charImage.width()
+                << std::endl;
+      break; // Stop drawing if the text exceeds the image width
     }
 
-    // Add some noise
-    for (int i = 0; i < 1000; ++i) {
-        int x = rand() % width;
-        int y = rand() % height;
-        unsigned char color[] = { (unsigned char)(rand() % 256), (unsigned char)(rand() % 256), (unsigned char)(rand() % 256) };
-        image.draw_point(x, y, color);
-    }
+    image.draw_image(x, y, charImage);
+    x += charImage.width();
+  }
 
-    // Save the image as PPM
-    std::string tempFilename = "captcha.ppm";
-    image.save(tempFilename.c_str());
+  // Add some noise
+  for (int i = 0; i < 1000; ++i) {
+    int x = rand() % width;
+    int y = rand() % height;
+    unsigned char color[] = {(unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256),
+                             (unsigned char)(rand() % 256)};
+    image.draw_point(x, y, color);
+  }
 
-    // Convert PPM to PNG using ImageMagick
-    std::string command = "convert " + tempFilename + " " + filename;
-    std::system(command.c_str());
+  // Save the image as PPM
+  std::string tempFilename = "captcha.ppm";
+  image.save(tempFilename.c_str());
 
-    // Remove the temporary PPM file
-    std::remove(tempFilename.c_str());
+  // Convert PPM to PNG using ImageMagick
+  std::string command = "convert " + tempFilename + " " + filename;
+  std::system(command.c_str());
+
+  // Remove the temporary PPM file
+  std::remove(tempFilename.c_str());
 }
 
 int main() {
-    srand(time(0));
-    std::string captchaText = generateRandomText(6);
-    std::string filename = "captcha.png";
-    generateCaptchaImage(captchaText, filename);
-    std::cout << "CAPTCHA generated: " << captchaText << std::endl;
-    std::cout << "Image saved as: " << filename << std::endl;
-    return 0;
+  srand(time(0));
+  std::string captchaText = generateRandomText(6);
+  std::string filename = "captcha.png";
+  generateCaptchaImage(captchaText, filename);
+  std::cout << "CAPTCHA generated: " << captchaText << std::endl;
+  std::cout << "Image saved as: " << filename << std::endl;
+  return 0;
 }
