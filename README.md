@@ -1,4 +1,4 @@
-## What this is about?
+## What is this about?
 This is a simple captcha image generator writen in c++ with CImg.h head only file.
 
 ## Why create this project?
