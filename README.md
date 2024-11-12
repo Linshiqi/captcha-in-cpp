@@ -1,6 +1,6 @@
 # captcha in simple C++
 
-[简体中文](https://github.com/Linshiqi/captcha-in-cpp/edit/main/README_zh.md)
+[简体中文](README_zh.md)
 
 ## What is this about?
 This is a simple captcha image generator writen in c++ with CImg.h head only file.
