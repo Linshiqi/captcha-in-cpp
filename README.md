@@ -114,3 +114,7 @@ g++ c_image_test.cc -o c_image_test
 
 ./c_image_test
 ```
+
+View generated image file
+
+![img](captcha.png)
