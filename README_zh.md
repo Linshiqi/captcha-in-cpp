@@ -128,3 +128,5 @@ g++ c_image_test.cc -o c_image_test
 查看生成的验证码图片
 
 ![img](captcha.png)
+
+觉得有用的话，不妨给个Star
